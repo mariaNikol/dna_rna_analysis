@@ -1,0 +1,129 @@
+install.packages("stringi")
+install.packages("stringr")
+install.packages("tidyverse")
+#################
+## Create a random sequence
+set.seed(1) 
+data <- stringi::stri_rand_strings(1, 2000, '[ACGT]')  
+data
+
+data_length <- nchar(data)
+
+# Count the occurrences of each base
+a <- stringr::str_count(data, "A")
+c <- stringr::str_count(data, "C")
+t <- stringr::str_count(data, "T")
+g <- stringr::str_count(data, "G")
+
+# Calculate the percentage of each base
+a_percnt <- (a / data_length) * 100
+c_percnt <- (c / data_length) * 100
+t_percnt <- (t / data_length) * 100
+g_percnt <- (g / data_length) * 100
+
+print(paste("A:", a, " C:", c, " T:", t, " G:", g))
+print(paste("A:", a_percnt, "% C:", c_percnt, "% T:", t_percnt, "% G:", g_percnt, "%"))
+
+# Question 2
+# Using the str_count function to return the count of occurrences of the given argument
+base_count <- function(char) {
+  return(stringr::str_count(data, char)) 
+}
+
+count_a <- base_count("A")
+
+
+# Function to find the positions of a specific base
+base_position <- function(char){
+  data_splitted <- stringr::str_split(data, "") # Splits the data into individual bases
+  positions <- which(data_splitted[[1]] == char) # Finds the positions where the given base is present
+  return(as.list(positions)) # Returns a list of positions where the base occurs
+}
+
+position_a <- base_position("A")
+#################
+
+# Function to read a file and return its contents as a data frame
+read_sequence <- function(char){
+  file_read <- read.table(char, header = FALSE, sep = "", dec = " ")
+  return(file_read)
+}
+
+file_seq <- read_sequence("dna_sequence.txt")
+file_seq_string <- file_seq[[1]]
+file_seq_length <- nchar(file_seq_string)
+
+
+# Count GC dinucleotides
+gc <- stringr::str_count(file_seq_string, "GC")
+
+# GC content: percentage of G or C
+# Function to calculate GC content per 500 bases
+GC_content <- numeric()
+for(i in seq(1, file_seq_length, by = 500)) {
+  GC_count <- 0
+  check_seq <- substr(file_seq_string, i, i + 499)
+  GC_count <- stringr::str_count(check_seq, "G") + stringr::str_count(check_seq, "C")
+  GC_content <- c(GC_content, GC_count / 500 * 100)
+}
+
+GC_content
+
+#################
+
+rna_seq_data <- read.csv("rna_seq_data.csv", header = TRUE)
+
+
+# Check for NA values in the data
+na_values <- lapply(rna_seq_data, is.na)
+
+percentages_na <- numeric()
+for(i in 2:length(na_values) - 1) {
+  percentages_na <- c(percentages_na, length(which(na_values[[i]] == "TRUE")) 
+                     / length(na_values[[i]]) * 100)
+}
+percentages_na
+columns_to_remove <- which(percentages_na != 0)
+rna_seq_data_new <- rna_seq_data[, -columns_to_remove]
+ 
+
+# Calculate max, min, mean, and median values for each gene/column
+rna_seq_data_new2 <- rna_seq_data_new[, -1]
+max_exp <- apply(rna_seq_data_new2, 2, max)
+min_exp <- apply(rna_seq_data_new2, 2, min)
+mean_exp <- apply(rna_seq_data_new2, 2, mean)
+median_exp <- apply(rna_seq_data_new2, 2, median)
+
+# Create a new matrix with the calculated values
+info_matrix <- rbind(max_exp, min_exp, mean_exp, median_exp)
+
+# Name the rows of the matrix
+rownames(info_matrix) <- c("Max Expression", "Min Expression", "Mean Expression", "Median Expression")
+print(info_matrix)
+
+
+gene3_above_median <- 0
+gene15_above_median <- 0
+for(i in 1:nrow(rna_seq_data_new)) {
+  if (rna_seq_data_new2[i, "Gene_3"] > median_exp["Gene_3"]) {
+    gene3_above_median <- gene3_above_median + 1
+  }
+  if (rna_seq_data_new2[i, "Gene_15"] > median_exp["Gene_15"]) {
+    gene15_above_median <- gene15_above_median + 1
+  }
+}
+gene3_above_median
+gene15_above_median
+
+# Boxplot of gene expression
+boxplot(as.matrix(rna_seq_data_new2), main = "Boxplot of Gene Expression", xlab = "Genes", ylab = "Expression", names = colnames(rna_seq_data_new2))
+
+# Barplot of mean gene expression
+barplot(mean_exp, main = "Mean Gene Expression", xlab = "Genes", ylab = "Mean Expression", names = colnames(rna_seq_data_new2), las = 2)
+
+# Pie chart for disease vs health
+samples <- vector()
+samples <- c(12, 18)
+names(samples) <- c("disease", "health")
+pie(samples, main = "Disease vs Health", labels = names(samples))
+
